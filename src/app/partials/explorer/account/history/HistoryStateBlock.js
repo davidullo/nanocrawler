@@ -96,7 +96,6 @@ class HistoryStateBlock extends React.Component {
           <span className="text-muted">{this.accountAction()}</span>{" "}
           <AccountLink
             account={this.transactionAccount()}
-            ninja={block.subtype === "change"}
             className="text-dark"
           />
         </td>

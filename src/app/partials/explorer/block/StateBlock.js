@@ -34,7 +34,6 @@ class StateBlock extends React.PureComponent {
             <AccountLink
               account={block.contents.account}
               className="text-muted break-word"
-              ninja
             />
           </small>
         </h4>
