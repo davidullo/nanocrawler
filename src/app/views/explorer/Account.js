@@ -10,6 +10,7 @@ import NanoNodeNinja from "../../../lib/NanoNodeNinja";
 
 import AccountLink from "../../partials/AccountLink";
 import AccountQR from "../../partials/AccountQR";
+import MonKey from "../../partials/MonKey";
 import PriceWithConversions from "../../partials/PriceWithConversions";
 import NodeNinjaAccount from "../../partials/explorer/account/NodeNinjaAccount";
 import UnopenedAccount from "../../partials/explorer/account/UnopenedAccount";
@@ -158,53 +159,68 @@ class Account extends React.Component {
         </Helmet>
 
         <div className="row align-items-center">
-          <div className="col">
-            <h1 className="mb-0">{this.accountTitle()}</h1>
-            <p className="text-muted mb-0 break-word">
-              {match.params.account}
+          <div className="col pl-0">
+            <div className="media">
+              <MonKey
+                account={match.params.account}
+                className="align-self-center"
+                style={{ width: "110px" }}
+              />
 
-              <span
-                className="tooltipped tooltipped-e ml-1"
-                aria-label="Copy to clipboard"
-              >
-                <Clipboard
-                  component="span"
-                  style={{ cursor: "pointer" }}
-                  data-clipboard-text={match.params.account}
-                >
-                  <i className="fa fa-clipboard" />
-                </Clipboard>
-              </span>
-            </p>
+              <div className="media-body">
+                <h1 className="mb-0">{this.accountTitle()}</h1>
+                <p className="text-muted mb-0 break-word">
+                  {match.params.account}
 
-            {this.getRepresentative()}
+                  <span
+                    className="tooltipped tooltipped-e ml-1"
+                    aria-label="Copy to clipboard"
+                  >
+                    <Clipboard
+                      component="span"
+                      style={{ cursor: "pointer" }}
+                      data-clipboard-text={match.params.account}
+                    >
+                      <i className="fa fa-clipboard" />
+                    </Clipboard>
+                  </span>
+                </p>
+
+                {this.getRepresentative()}
+              </div>
+            </div>
           </div>
-          <div className="col-auto pr-0">
-            <AccountQR
-              account={match.params.account}
-              style={{ width: "80px" }}
-            />
-          </div>
+
           <div className="col-auto">
-            <PriceWithConversions
-              amount={balance}
-              currencies={["banano", "nano", "usd", "btc"]}
-            >
-              {(banano, nano, usd, btc) => {
-                return (
-                  <Fragment>
-                    <h3 className="mb-0">{banano}</h3>
+            <div className="row align-items-center mt-lg-0 mt-3">
+              <div className="col-auto">
+                <AccountQR
+                  account={match.params.account}
+                  style={{ width: "80px" }}
+                />
+              </div>
+              <div className="col pl-0">
+                <PriceWithConversions
+                  amount={balance}
+                  currencies={["banano", "nano", "usd", "btc"]}
+                >
+                  {(banano, nano, usd, btc) => {
+                    return (
+                      <Fragment>
+                        <h3 className="mb-0">{banano}</h3>
 
-                    <p className="text-muted mb-0">
-                      {nano} / {usd} / {btc}
-                    </p>
-                    <p className="text-muted mb-0">
-                      {accounting.formatNumber(pending, 2)} BANANO pending
-                    </p>
-                  </Fragment>
-                );
-              }}
-            </PriceWithConversions>
+                        <p className="text-muted mb-0">
+                          {nano} / {usd} / {btc}
+                        </p>
+                        <p className="text-muted mb-0">
+                          {accounting.formatNumber(pending, 2)} BANANO pending
+                        </p>
+                      </Fragment>
+                    );
+                  }}
+                </PriceWithConversions>
+              </div>
+            </div>
           </div>
         </div>
 
