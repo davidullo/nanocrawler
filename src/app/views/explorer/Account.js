@@ -160,10 +160,9 @@ class Account extends React.Component {
 
         <div className="row align-items-center">
           <div className="col pl-0">
-            <div className="media">
+            <div className="media align-items-center">
               <MonKey
                 account={match.params.account}
-                className="align-self-center"
                 style={{ width: "110px" }}
               />
 
