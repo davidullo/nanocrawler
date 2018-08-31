@@ -5,6 +5,7 @@ import redisFetch from "../helpers/redisFetch";
 import config from "../../../server-config.json";
 
 const CIRCULATING_SUPPLY = 3402823669.2;
+const AVERAGED_TRADES = 10;
 
 export default function(app, nano) {
   app.get("/ticker", async (req, res) => {
@@ -110,7 +111,7 @@ async function getNanoStats(bananoData) {
   //   .slice(0, 5)
   //   .map(r => r.rate);
 
-  const rates = bananoData.slice(0, 5);
+  const rates = bananoData.slice(0, AVERAGED_TRADES);
   const volume = rates.reduce((acc, trade) => acc + trade.banano, 0);
   const weights = rates.map(trade => trade.banano / volume);
   const weightedRates = rates.map(
