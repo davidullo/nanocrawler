@@ -38,9 +38,9 @@ async function fetchTickerData(fiatRates) {
   return {
     name: "Banano",
     symbol: "BAN",
-    circulating_supply: CIRCULATING_SUPPLY,
-    total_supply: CIRCULATING_SUPPLY,
-    max_supply: CIRCULATING_SUPPLY,
+    circulating_supply: CIRCULATING_SUPPLY.toString(),
+    total_supply: CIRCULATING_SUPPLY.toString(),
+    max_supply: CIRCULATING_SUPPLY.toString(),
     quotes: _.merge(
       {
         NANO: nanoStats,
@@ -121,9 +121,9 @@ async function getNanoStats(bananoData) {
   const avgRate = weightedRates.reduce((acc, rate) => acc + rate, 0);
 
   return {
-    price: avgRate,
-    volume_24h: volume24h,
-    market_cap: CIRCULATING_SUPPLY * avgRate
+    price: avgRate.toString(),
+    volume_24h: volume24h.toString(),
+    market_cap: (CIRCULATING_SUPPLY * avgRate).toString()
   };
 }
 
@@ -140,9 +140,9 @@ function getFiatStats(fiatRates, exchangeRates, nanoData, nanoStats) {
         return [
           cur,
           {
-            price,
-            volume_24h: nanoStats.volume_24h * price,
-            market_cap: CIRCULATING_SUPPLY * price
+            price: price.toString(),
+            volume_24h: (nanoStats.volume_24h * price).toString(),
+            market_cap: (CIRCULATING_SUPPLY * price).toString()
           }
         ];
       })
@@ -153,18 +153,18 @@ function getFiatStats(fiatRates, exchangeRates, nanoData, nanoStats) {
 function getUSDStats(nanoData, nanoStats) {
   const price = nanoData.quotes.USD.price * nanoStats.price;
   return {
-    price,
-    volume_24h: nanoStats.volume_24h * price,
-    market_cap: CIRCULATING_SUPPLY * price
+    price: price.toString(),
+    volume_24h: (nanoStats.volume_24h * price).toString(),
+    market_cap: (CIRCULATING_SUPPLY * price).toString()
   };
 }
 
 function getBTCStats(nanoData, nanoStats) {
   const price = nanoData.quotes.BTC.price * nanoStats.price;
   return {
-    price,
-    volume_24h: nanoStats.volume_24h * price,
-    market_cap: CIRCULATING_SUPPLY * price
+    price: price.toString(),
+    volume_24h: (nanoStats.volume_24h * price).toString(),
+    market_cap: (CIRCULATING_SUPPLY * price).toString()
   };
 }
 
