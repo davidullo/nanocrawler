@@ -162,7 +162,7 @@ function getUSDStats(nanoData, nanoStats) {
 function getBTCStats(nanoData, nanoStats) {
   const price = nanoData.quotes.BTC.price * nanoStats.price;
   return {
-    price: price.toString(),
+    price: price.toFixed(8).toString(),
     volume_24h: (nanoStats.volume_24h * price).toString(),
     market_cap: (CIRCULATING_SUPPLY * price).toString()
   };
