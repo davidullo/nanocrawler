@@ -105,15 +105,7 @@ class ExchangeRates extends React.PureComponent {
                   <div className="input-group-text">BAN</div>
                 </div>
               </div>
-              <p className="text-muted">
-                Disclaimer<br />
-                <small>
-                  These exchange rates are calculated as an average of the last
-                  5 OTC trades in the Banano Discord server, minus obvious
-                  outliers. They may not be 100% accurate and can be
-                  manipulated.
-                </small>
-              </p>
+              <p className="text-muted">Price data provided by Mercatox.</p>
             </div>
             <div className="col-12 col-md-5">
               {this.getHighlightedCurrencies()}
