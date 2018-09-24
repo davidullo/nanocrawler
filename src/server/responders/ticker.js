@@ -25,15 +25,13 @@ export default function(app, nano) {
   });
 }
 
-async function fetchTickerData(fiatRates) {
-  const exchangeRates = await fetchExchangeRates();
-  const nanoData = await fetchNanoData();
+async function fetchTickerData(currencies) {
+  const fiatRates = await fetchFiatRates();
+  const btcPrice = await fetchBTCPrice();
   const bananoData = await fetchBananoData();
+  calculateUSDPrice(bananoData, btcPrice);
 
-  const nanoStats = await getNanoStats(bananoData);
-  const btcStats = getBTCStats(nanoData, nanoStats);
-
-  const fiatStats = getFiatStats(fiatRates, exchangeRates, nanoData, nanoStats);
+  const fiatStats = getFiatStats(bananoData.USD, fiatRates, currencies);
 
   return {
     name: "Banano",
@@ -41,18 +39,25 @@ async function fetchTickerData(fiatRates) {
     circulating_supply: CIRCULATING_SUPPLY.toString(),
     total_supply: CIRCULATING_SUPPLY.toString(),
     max_supply: CIRCULATING_SUPPLY.toString(),
-    quotes: _.merge(
-      {
-        NANO: nanoStats,
-        BTC: btcStats
-      },
-      fiatStats
-    ),
+    quotes: _.merge(bananoData, fiatStats),
     last_updated: new Date().getTime() / 1000
   };
 }
 
-async function fetchExchangeRates() {
+async function fetchBTCPrice() {
+  const resp = await fetch(
+    "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=1",
+    {
+      headers: {
+        "X-CMC_PRO_API_KEY": config.coinMarketCapApiKey
+      }
+    }
+  );
+
+  return (await resp.json()).data["1"].quote.USD.price;
+}
+
+async function fetchFiatRates() {
   // Update every 2 hours right now, to avoid going over free limits
   return await redisFetch("fiat_exchange_rates", 7200, async () => {
     const resp = await fetch(
@@ -68,132 +73,49 @@ async function fetchExchangeRates() {
   });
 }
 
-async function fetchNanoData() {
-  const resp = await fetch(
-    "https://api.coinmarketcap.com/v2/ticker/1567/?convert=BTC"
-  );
-  return (await resp.json()).data;
-}
-
 async function fetchBananoData() {
-  const start = moment()
-    .subtract(1, "day")
-    .toISOString()
-    .match(/(.+)\.\d+Z$/)[1];
-  const end = moment()
-    .toISOString()
-    .match(/(.+)\.\d+Z$/)[1];
+  const resp = await fetch("https://mercatox.com/public/json24");
+  const data = (await resp.json()).pairs;
 
-  const resp = await fetch(
-    `http://bbdevelopment.website:8000/trade?start=${start}&end=${end}`
-  );
-  return (await resp.json()).data;
-}
-
-async function getNanoStats(bananoData) {
-  let volume24h;
-  if (bananoData.length === 0) {
-    const resp = await fetch(
-      `http://bbdevelopment.website:8000/trade?limit=20`
-    );
-    bananoData = (await resp.json()).data;
-    volume24h = 0;
-  } else {
-    volume24h = _.sum(bananoData.map(trade => trade.nano / 1000000.0));
-  }
-
-  // const exchangeRates = bananoData.map((trade, i) => ({
-  //   rate: trade.nano / 1000000.0 / trade.banano,
-  //   order: i
-  // }));
-
-  // const rates = filterOutliers(exchangeRates)
-  //   .slice(0, 5)
-  //   .map(r => r.rate);
-
-  const rates = bananoData.slice(0, AVERAGED_TRADES);
-  const volume = rates.reduce((acc, trade) => acc + trade.banano, 0);
-  const weights = rates.map(trade => trade.banano / volume);
-  const weightedRates = rates.map(
-    (trade, i) => (trade.nano / 1000000.0 / trade.banano) * weights[i]
-  );
-
-  const avgRate = weightedRates.reduce((acc, rate) => acc + rate, 0);
+  const mercaToCMC = d => ({
+    price: d.last,
+    volume_24h: d.quoteVolume,
+    market_cap: (CIRCULATING_SUPPLY * parseFloat(d.last, 10)).toString()
+  });
 
   return {
-    price: avgRate.toString(),
-    volume_24h: volume24h.toString(),
-    market_cap: (CIRCULATING_SUPPLY * avgRate).toString()
+    NANO: mercaToCMC(data.BAN_XRB),
+    BTC: mercaToCMC(data.BAN_BTC)
   };
 }
 
-function getFiatStats(fiatRates, exchangeRates, nanoData, nanoStats) {
+function calculateUSDPrice(bananoData, btcPrice) {
+  const usdPrice = bananoData.BTC.price * btcPrice;
+  bananoData.USD = {
+    price: usdPrice.toString(),
+    volume_24h: (btcPrice * bananoData.BTC.volume_24h).toString(),
+    market_cap: (CIRCULATING_SUPPLY * usdPrice).toString()
+  };
+}
+
+function getFiatStats(usdStats, exchangeRates, fiatRates) {
   if (fiatRates.length === 0) fiatRates = _.keys(exchangeRates);
   return _.fromPairs(
     _.compact(
       fiatRates.map(cur => {
+        if (cur === "BTC" || cur === "USD") return null;
         if (!exchangeRates[cur]) return null;
 
-        // USD is our base currency, so we multiply Nano's USD price by what we're converting to.
-        const price =
-          nanoData.quotes.USD.price * exchangeRates[cur] * nanoStats.price;
+        const price = usdStats.price * exchangeRates[cur];
         return [
           cur,
           {
             price: price.toString(),
-            volume_24h: (nanoStats.volume_24h * price).toString(),
+            volume_24h: (usdStats.volume_24h * price).toString(),
             market_cap: (CIRCULATING_SUPPLY * price).toString()
           }
         ];
       })
     )
   );
-}
-
-function getUSDStats(nanoData, nanoStats) {
-  const price = nanoData.quotes.USD.price * nanoStats.price;
-  return {
-    price: price.toString(),
-    volume_24h: (nanoStats.volume_24h * price).toString(),
-    market_cap: (CIRCULATING_SUPPLY * price).toString()
-  };
-}
-
-function getBTCStats(nanoData, nanoStats) {
-  const price = nanoData.quotes.BTC.price * nanoStats.price;
-  return {
-    price: price.toFixed(8).toString(),
-    volume_24h: (nanoStats.volume_24h * price).toString(),
-    market_cap: (CIRCULATING_SUPPLY * price).toString()
-  };
-}
-
-function filterOutliers(someArray) {
-  if (someArray.length < 4) return someArray;
-
-  let values, q1, q3, iqr, maxValue, minValue;
-
-  values = someArray.slice().sort((a, b) => a.rate - b.rate); //copy array fast and sort
-
-  if ((values.length / 4) % 1 === 0) {
-    //find quartiles
-    q1 =
-      (1 / 2) *
-      (values[values.length / 4].rate + values[values.length / 4 + 1].rate);
-    q3 =
-      (1 / 2) *
-      (values[values.length * (3 / 4) - 1].rate +
-        values[values.length * (3 / 4)].rate);
-  } else {
-    q1 = values[Math.floor(values.length / 4)].rate;
-    q3 = values[Math.ceil(values.length * (3 / 4))].rate;
-  }
-
-  iqr = q3 - q1;
-  maxValue = q3 + iqr * 1.5;
-  minValue = q1 - iqr * 1.5;
-
-  return values
-    .filter(x => x.rate >= minValue && x.rate <= maxValue)
-    .sort((a, b) => a.order - b.order);
 }
