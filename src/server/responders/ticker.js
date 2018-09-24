@@ -45,16 +45,18 @@ async function fetchTickerData(currencies) {
 }
 
 async function fetchBTCPrice() {
-  const resp = await fetch(
-    "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=1",
-    {
-      headers: {
-        "X-CMC_PRO_API_KEY": config.coinMarketCapApiKey
+  return await redisFetch(`ticker/BTC`, 500, async () => {
+    const resp = await fetch(
+      "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=1",
+      {
+        headers: {
+          "X-CMC_PRO_API_KEY": config.coinMarketCapApiKey
+        }
       }
-    }
-  );
+    );
 
-  return (await resp.json()).data["1"].quote.USD.price;
+    return (await resp.json()).data["1"].quote.USD.price;
+  });
 }
 
 async function fetchFiatRates() {
