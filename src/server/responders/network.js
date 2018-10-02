@@ -1,6 +1,7 @@
 import _ from "lodash";
 import redisFetch from "../helpers/redisFetch";
 import tpsCalculator from "../helpers/tpsCalculator";
+import circulatingSupply from "../helpers/circulatingSupply";
 
 export default function(app, nano) {
   // nanoNodeMonitor network data
@@ -45,6 +46,18 @@ export default function(app, nano) {
       );
 
       res.json({ richList });
+    } catch (e) {
+      res.status(500).send({ error: e.message });
+    }
+  });
+
+  app.get("/supply", async (req, res) => {
+    try {
+      const supply = await redisFetch("supply", 300, async () => {
+        return circulatingSupply();
+      });
+
+      res.json({ supply });
     } catch (e) {
       res.status(500).send({ error: e.message });
     }
