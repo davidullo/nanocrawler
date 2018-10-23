@@ -2,9 +2,10 @@ import fetch from "node-fetch";
 import moment from "moment";
 import _ from "lodash";
 import redisFetch from "../helpers/redisFetch";
+import circulatingSupply from "../helpers/circulatingSupply";
 import config from "../../../server-config.json";
 
-const CIRCULATING_SUPPLY = 3402823669.2;
+const TOTAL_SUPPLY = 3402823669.2;
 const AVERAGED_TRADES = 10;
 
 export default function(app, nano) {
@@ -26,19 +27,26 @@ export default function(app, nano) {
 }
 
 async function fetchTickerData(currencies) {
+  const { circulating } = await circulatingSupply();
+
   const fiatRates = await fetchFiatRates();
   const btcPrice = await fetchBTCPrice();
-  const bananoData = await fetchBananoData();
-  calculateUSDPrice(bananoData, btcPrice);
+  const bananoData = await fetchBananoData(circulating);
+  calculateUSDPrice(bananoData, btcPrice, circulating);
 
-  const fiatStats = getFiatStats(bananoData.USD, fiatRates, currencies);
+  const fiatStats = getFiatStats(
+    bananoData.USD,
+    fiatRates,
+    currencies,
+    circulating
+  );
 
   return {
     name: "Banano",
     symbol: "BAN",
-    circulating_supply: CIRCULATING_SUPPLY.toString(),
-    total_supply: CIRCULATING_SUPPLY.toString(),
-    max_supply: CIRCULATING_SUPPLY.toString(),
+    circulating_supply: circulating.toString(),
+    total_supply: TOTAL_SUPPLY.toString(),
+    max_supply: TOTAL_SUPPLY.toString(),
     quotes: _.merge(bananoData, fiatStats),
     last_updated: new Date().getTime() / 1000
   };
@@ -75,14 +83,14 @@ async function fetchFiatRates() {
   });
 }
 
-async function fetchBananoData() {
+async function fetchBananoData(circulatingSupply) {
   const resp = await fetch("https://mercatox.com/public/json24");
   const data = (await resp.json()).pairs;
 
   const mercaToCMC = d => ({
     price: d.last,
     volume_24h: d.quoteVolume,
-    market_cap: (CIRCULATING_SUPPLY * parseFloat(d.last, 10)).toString()
+    market_cap: (circulatingSupply * parseFloat(d.last, 10)).toString()
   });
 
   return {
@@ -91,16 +99,16 @@ async function fetchBananoData() {
   };
 }
 
-function calculateUSDPrice(bananoData, btcPrice) {
+function calculateUSDPrice(bananoData, btcPrice, circulatingSupply) {
   const usdPrice = bananoData.BTC.price * btcPrice;
   bananoData.USD = {
     price: usdPrice.toString(),
     volume_24h: (btcPrice * bananoData.BTC.volume_24h).toString(),
-    market_cap: (CIRCULATING_SUPPLY * usdPrice).toString()
+    market_cap: (circulatingSupply * usdPrice).toString()
   };
 }
 
-function getFiatStats(usdStats, exchangeRates, fiatRates) {
+function getFiatStats(usdStats, exchangeRates, fiatRates, circulatingSupply) {
   if (fiatRates.length === 0) fiatRates = _.keys(exchangeRates);
   return _.fromPairs(
     _.compact(
@@ -114,7 +122,7 @@ function getFiatStats(usdStats, exchangeRates, fiatRates) {
           {
             price: price.toString(),
             volume_24h: (usdStats.volume_24h * price).toString(),
-            market_cap: (CIRCULATING_SUPPLY * price).toString()
+            market_cap: (circulatingSupply * price).toString()
           }
         ];
       })
