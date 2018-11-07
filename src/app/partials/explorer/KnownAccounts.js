@@ -12,6 +12,10 @@ const KnownAccounts = [
     alias: "Official Rep - FOMO"
   },
   {
+    account: "ban_31dhbgirwzd3ce7naor6o94woefws9hpxu4q8uxm1bz98w89zqpfks5rk3ad",
+    alias: "Mercatox Hot Wallet"
+  },
+  {
     account: "ban_3runnerrxm74165sfmystpktzsyp7eurixwpk59tejnn8xamn8zog18abrda",
     alias: "Banano Runner"
   },
